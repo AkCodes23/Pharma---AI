@@ -1,0 +1,75 @@
+[
+    {
+        "molecule": "Pembrolizumab",
+        "total_import_volume_kg": 500,
+        "major_source_countries": [
+            "Ireland",
+            "USA"
+        ],
+        "average_price_per_kg": 150000
+    },
+    {
+        "molecule": "Sitagliptin",
+        "total_import_volume_kg": 25000,
+        "major_source_countries": [
+            "China",
+            "India"
+        ],
+        "average_price_per_kg": 250
+    },
+    {
+        "molecule": "Rivaroxaban",
+        "total_import_volume_kg": 12000,
+        "major_source_countries": [
+            "Germany",
+            "China"
+        ],
+        "average_price_per_kg": 800
+    },
+    {
+        "molecule": "Pirfenidone",
+        "total_import_volume_kg": 3500,
+        "major_source_countries": [
+            "Japan",
+            "China"
+        ],
+        "average_price_per_kg": 1200
+    },
+    {
+        "molecule": "Roflumilast",
+        "total_import_volume_kg": 850,
+        "major_source_countries": [
+            "Germany",
+            "India"
+        ],
+        "average_price_per_kg": 2800
+    },
+    {
+        "molecule": "Tiotropium",
+        "total_import_volume_kg": 180,
+        "major_source_countries": [
+            "Germany",
+            "USA"
+        ],
+        "average_price_per_kg": 45000
+    },
+    {
+        "molecule": "Fluticasone",
+        "total_import_volume_kg": 8500,
+        "major_source_countries": [
+            "UK",
+            "India",
+            "China"
+        ],
+        "average_price_per_kg": 320
+    },
+    {
+        "molecule": "Omalizumab",
+        "total_import_volume_kg": 45,
+        "major_source_countries": [
+            "Switzerland",
+            "USA"
+        ],
+        "average_price_per_kg": 850000
+    }
+]

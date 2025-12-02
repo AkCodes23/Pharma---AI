@@ -1,0 +1,92 @@
+[
+    {
+        "molecule": "Semaglutide",
+        "source": "Reddit r/diabetes",
+        "post_text": "The nausea is unbearable. I can't keep any food down. Is this normal?",
+        "sentiment": -0.8,
+        "date": "2024-01-15",
+        "therapy_area": "Diabetes",
+        "complaint_theme": "Side effects"
+    },
+    {
+        "molecule": "Semaglutide",
+        "source": "PatientsLikeMe",
+        "post_text": "Lost 15lbs in a month! Best thing ever, despite the cost.",
+        "sentiment": 0.9,
+        "date": "2024-02-10",
+        "therapy_area": "Diabetes",
+        "complaint_theme": "Cost"
+    },
+    {
+        "molecule": "Adalimumab",
+        "source": "Reddit r/CrohnsDisease",
+        "post_text": "The injection stings so much. I wish there was a pill version.",
+        "sentiment": -0.6,
+        "date": "2023-11-05",
+        "therapy_area": "Autoimmune",
+        "complaint_theme": "Ease of use"
+    },
+    {
+        "molecule": "Pembrolizumab",
+        "source": "CancerSurvivorsNetwork",
+        "post_text": "Feeling very fatigued after the infusion, but scans are clear.",
+        "sentiment": 0.2,
+        "date": "2024-03-01",
+        "therapy_area": "Oncology",
+        "complaint_theme": "Side effects"
+    },
+    {
+        "molecule": "Insulin",
+        "source": "Reddit r/diabetes",
+        "post_text": "Needle pain every day is exhausting. Why can't they make something easier?",
+        "sentiment": -0.7,
+        "date": "2024-04-12",
+        "therapy_area": "Diabetes",
+        "complaint_theme": "Needle pain"
+    },
+    {
+        "molecule": "Insulin",
+        "source": "PatientsLikeMe",
+        "post_text": "Keeping insulin refrigerated while traveling is a nightmare.",
+        "sentiment": -0.5,
+        "date": "2024-03-20",
+        "therapy_area": "Diabetes",
+        "complaint_theme": "Storage issues"
+    },
+    {
+        "molecule": "Insulin",
+        "source": "Reddit r/diabetes",
+        "post_text": "The pen is bulky and I hate carrying it around. Need something more discreet.",
+        "sentiment": -0.4,
+        "date": "2024-05-08",
+        "therapy_area": "Diabetes",
+        "complaint_theme": "Convenience"
+    },
+    {
+        "molecule": "Tiotropium",
+        "source": "Reddit r/COPD",
+        "post_text": "The Respimat device is confusing to use. Took me weeks to figure it out.",
+        "sentiment": -0.5,
+        "date": "2024-02-28",
+        "therapy_area": "Respiratory",
+        "complaint_theme": "Device complexity"
+    },
+    {
+        "molecule": "Pirfenidone",
+        "source": "PulmonaryFibrosis.org",
+        "post_text": "The photosensitivity is real. Can't go outside without full coverage now.",
+        "sentiment": -0.6,
+        "date": "2024-01-22",
+        "therapy_area": "Respiratory",
+        "complaint_theme": "Side effects"
+    },
+    {
+        "molecule": "Fluticasone",
+        "source": "Reddit r/Asthma",
+        "post_text": "Works great but leaves a bad aftertaste. Have to rinse my mouth every time.",
+        "sentiment": 0.1,
+        "date": "2024-04-05",
+        "therapy_area": "Respiratory",
+        "complaint_theme": "Ease of use"
+    }
+]

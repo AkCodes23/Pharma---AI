@@ -1,0 +1,62 @@
+[
+    {
+        "query": "respiratory disease market India",
+        "results": [
+            {
+                "title": "India Respiratory Market to Reach $4.2B by 2028 - FiercePharma",
+                "url": "https://fiercepharma.com/india-respiratory-2028",
+                "snippet": "The Indian respiratory market is experiencing rapid growth driven by rising pollution levels and increasing COPD/asthma prevalence. Generic competition remains limited in novel biologics."
+            },
+            {
+                "title": "COPD Burden in India: 55 Million Patients - Lancet",
+                "url": "https://lancet.com/copd-india-2024",
+                "snippet": "India has the highest COPD burden globally with 55 million patients. Current treatments are inadequate, creating significant unmet medical need."
+            }
+        ]
+    },
+    {
+        "query": "Pembrolizumab new indications 2024",
+        "results": [
+            {
+                "title": "FDA Approves Keytruda for Endometrial Cancer - FDA.gov",
+                "url": "https://fda.gov/keytruda-endometrial-2024",
+                "snippet": "The FDA has granted approval for Pembrolizumab (Keytruda) in combination with lenvatinib for advanced endometrial cancer, expanding its indication portfolio."
+            },
+            {
+                "title": "Merck Announces Positive Phase III Results in Bladder Cancer",
+                "url": "https://merck.com/bladder-cancer-phase3",
+                "snippet": "Pembrolizumab shows significant improvement in overall survival for muscle-invasive bladder cancer patients in the KEYNOTE-866 trial."
+            }
+        ]
+    },
+    {
+        "query": "generic Sitagliptin launch India",
+        "results": [
+            {
+                "title": "Sun Pharma Launches Generic Sitagliptin at 60% Discount",
+                "url": "https://pharmabiz.com/sun-sitagliptin",
+                "snippet": "Following patent expiry, Sun Pharmaceutical launched generic Sitagliptin in India at Rs 8 per tablet, compared to Rs 22 for the branded version."
+            }
+        ]
+    },
+    {
+        "query": "Rivaroxaban patent expiry generic launch",
+        "results": [
+            {
+                "title": "Bayer Prepares Authorized Generic Strategy for Xarelto",
+                "url": "https://reuters.com/bayer-xarelto-ag",
+                "snippet": "Bayer is planning to launch an authorized generic of Rivaroxaban to maintain market share ahead of full generic competition expected in 2025."
+            }
+        ]
+    },
+    {
+        "query": "IPF treatment options unmet need",
+        "results": [
+            {
+                "title": "Idiopathic Pulmonary Fibrosis: Limited Treatment Options",
+                "url": "https://medscape.com/ipf-treatment-2024",
+                "snippet": "Only two drugs (Pirfenidone and Nintedanib) are approved for IPF. Both slow progression but do not cure. Significant opportunity for novel therapies."
+            }
+        ]
+    }
+]

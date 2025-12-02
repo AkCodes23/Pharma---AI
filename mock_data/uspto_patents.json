@@ -1,0 +1,108 @@
+[
+    {
+        "molecule": "Pembrolizumab",
+        "patents": [
+            {
+                "patent_number": "US8354509",
+                "type": "Composition of Matter",
+                "expiry_date": "2028-06-15",
+                "status": "Active"
+            }
+        ]
+    },
+    {
+        "molecule": "Sitagliptin",
+        "patents": [
+            {
+                "patent_number": "US7326708",
+                "type": "Composition of Matter",
+                "expiry_date": "2022-11-24",
+                "status": "Expired"
+            }
+        ]
+    },
+    {
+        "molecule": "Rivaroxaban",
+        "patents": [
+            {
+                "patent_number": "US7157456",
+                "type": "Composition of Matter",
+                "expiry_date": "2024-08-28",
+                "status": "Active"
+            }
+        ]
+    },
+    {
+        "molecule": "Pirfenidone",
+        "patents": [
+            {
+                "patent_number": "US5310562",
+                "type": "Composition of Matter",
+                "expiry_date": "2014-05-10",
+                "status": "Expired"
+            },
+            {
+                "patent_number": "US8609701",
+                "type": "Formulation",
+                "expiry_date": "2026-08-15",
+                "status": "Active"
+            }
+        ]
+    },
+    {
+        "molecule": "Roflumilast",
+        "patents": [
+            {
+                "patent_number": "US5712298",
+                "type": "Composition of Matter",
+                "expiry_date": "2020-06-22",
+                "status": "Expired"
+            }
+        ]
+    },
+    {
+        "molecule": "Tiotropium",
+        "patents": [
+            {
+                "patent_number": "US5610163",
+                "type": "Composition of Matter",
+                "expiry_date": "2021-01-14",
+                "status": "Expired"
+            },
+            {
+                "patent_number": "US7309707",
+                "type": "Formulation (Respimat)",
+                "expiry_date": "2025-09-20",
+                "status": "Active"
+            }
+        ]
+    },
+    {
+        "molecule": "Omalizumab",
+        "patents": [
+            {
+                "patent_number": "US6267958",
+                "type": "Composition of Matter",
+                "expiry_date": "2017-07-26",
+                "status": "Expired"
+            },
+            {
+                "patent_number": "US8153765",
+                "type": "Formulation",
+                "expiry_date": "2028-11-30",
+                "status": "Active"
+            }
+        ]
+    },
+    {
+        "molecule": "Fluticasone",
+        "patents": [
+            {
+                "patent_number": "US4335121",
+                "type": "Composition of Matter",
+                "expiry_date": "1999-06-15",
+                "status": "Expired"
+            }
+        ]
+    }
+]

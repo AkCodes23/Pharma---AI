@@ -1,0 +1,92 @@
+[
+  {
+    "molecule": "Pembrolizumab",
+    "region": "Global",
+    "therapy_area": "Oncology",
+    "market_size_usd_mn": 25000,
+    "cagr_percent": 12.5,
+    "top_competitors": ["Nivolumab", "Atezolizumab"],
+    "generic_penetration": "Low",
+    "patient_burden": "High"
+  },
+  {
+    "molecule": "Sitagliptin",
+    "region": "India",
+    "therapy_area": "Diabetes",
+    "market_size_usd_mn": 150,
+    "cagr_percent": 8.0,
+    "top_competitors": ["Vildagliptin", "Teneligliptin"],
+    "generic_penetration": "High",
+    "patient_burden": "Very High"
+  },
+  {
+    "molecule": "Rivaroxaban",
+    "region": "US",
+    "therapy_area": "Cardiovascular",
+    "market_size_usd_mn": 4000,
+    "cagr_percent": 5.2,
+    "top_competitors": ["Apixaban", "Warfarin"],
+    "generic_penetration": "Medium",
+    "patient_burden": "High"
+  },
+  {
+    "molecule": "Pirfenidone",
+    "region": "India",
+    "therapy_area": "Respiratory",
+    "indication": "Idiopathic Pulmonary Fibrosis",
+    "market_size_usd_mn": 45,
+    "cagr_percent": 18.5,
+    "top_competitors": ["Nintedanib"],
+    "generic_penetration": "Low",
+    "patient_burden": "High",
+    "competition_level": "Low"
+  },
+  {
+    "molecule": "Roflumilast",
+    "region": "India",
+    "therapy_area": "Respiratory",
+    "indication": "COPD",
+    "market_size_usd_mn": 28,
+    "cagr_percent": 14.2,
+    "top_competitors": ["Theophylline"],
+    "generic_penetration": "Low",
+    "patient_burden": "Very High",
+    "competition_level": "Low"
+  },
+  {
+    "molecule": "Fluticasone",
+    "region": "India",
+    "therapy_area": "Respiratory",
+    "indication": "Asthma",
+    "market_size_usd_mn": 320,
+    "cagr_percent": 6.1,
+    "top_competitors": ["Budesonide", "Beclometasone", "Ciclesonide"],
+    "generic_penetration": "High",
+    "patient_burden": "Very High",
+    "competition_level": "High"
+  },
+  {
+    "molecule": "Omalizumab",
+    "region": "India",
+    "therapy_area": "Respiratory",
+    "indication": "Severe Asthma",
+    "market_size_usd_mn": 65,
+    "cagr_percent": 22.0,
+    "top_competitors": ["Mepolizumab", "Benralizumab"],
+    "generic_penetration": "Low",
+    "patient_burden": "High",
+    "competition_level": "Low"
+  },
+  {
+    "molecule": "Tiotropium",
+    "region": "India",
+    "therapy_area": "Respiratory",
+    "indication": "COPD",
+    "market_size_usd_mn": 85,
+    "cagr_percent": 9.8,
+    "top_competitors": ["Glycopyrronium", "Umeclidinium"],
+    "generic_penetration": "Medium",
+    "patient_burden": "Very High",
+    "competition_level": "Medium"
+  }
+]

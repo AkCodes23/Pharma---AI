@@ -1,0 +1,58 @@
+[
+    {
+        "molecule": "Sitagliptin",
+        "competitor": "Sun Pharma",
+        "predicted_strategy": "Launch generic at 60% discount immediately upon patent expiry.",
+        "likelihood": "High",
+        "impact": "Severe erosion of market share."
+    },
+    {
+        "molecule": "Pembrolizumab",
+        "competitor": "Roche",
+        "predicted_strategy": "Accelerate clinical trials for subcutaneous PD-L1 inhibitor to capture convenience segment.",
+        "likelihood": "Medium",
+        "impact": "Loss of naive patients who prefer easier administration."
+    },
+    {
+        "molecule": "Rivaroxaban",
+        "competitor": "Bayer (Authorized Generic)",
+        "predicted_strategy": "Launch authorized generic to discourage other entrants.",
+        "likelihood": "High",
+        "impact": "Maintains some revenue stream but lowers margin."
+    },
+    {
+        "molecule": "Rivaroxaban",
+        "competitor": "Teva",
+        "predicted_strategy": "Aggressive pricing strategy at 70% discount to gain market share quickly.",
+        "likelihood": "High",
+        "impact": "Price war likely, margin compression across market."
+    },
+    {
+        "molecule": "Rivaroxaban",
+        "competitor": "Sun Pharma",
+        "predicted_strategy": "Launch with strong field force push in tier 2/3 cities.",
+        "likelihood": "Medium",
+        "impact": "Capture untapped market segments."
+    },
+    {
+        "molecule": "Pirfenidone",
+        "competitor": "Cipla",
+        "predicted_strategy": "Launch generic with patient assistance program.",
+        "likelihood": "Medium",
+        "impact": "Price-sensitive patients may switch."
+    },
+    {
+        "molecule": "Tiotropium",
+        "competitor": "Cipla",
+        "predicted_strategy": "Launch generic dry powder inhaler as Respimat alternative.",
+        "likelihood": "High",
+        "impact": "Device preference may shift to simpler alternatives."
+    },
+    {
+        "molecule": "Fluticasone",
+        "competitor": "Multiple Generics",
+        "predicted_strategy": "Commoditization with price-based competition.",
+        "likelihood": "High",
+        "impact": "Margin pressure, differentiation only through FDCs."
+    }
+]

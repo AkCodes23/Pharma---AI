@@ -1,0 +1,60 @@
+[
+    {
+        "doc_id": "DOC-001",
+        "title": "Oncology Strategy 2025",
+        "summary": "Focus on biosimilars for Keytruda and Opdivo. High unmet need in affordable immunotherapy in emerging markets.",
+        "tags": [
+            "Oncology",
+            "Strategy",
+            "Biosimilars"
+        ],
+        "content": "The oncology market continues to grow at 12% CAGR. Pembrolizumab biosimilar opportunity exists post-2028. Key markets: India, Brazil, ASEAN. Priority indications: NSCLC, Melanoma, TNBC."
+    },
+    {
+        "doc_id": "DOC-002",
+        "title": "Field Report: Diabetes India Q3",
+        "summary": "Sitagliptin generics are flooding the market. Need to differentiate with fixed-dose combinations (FDCs).",
+        "tags": [
+            "Diabetes",
+            "India",
+            "Field Insights"
+        ],
+        "content": "Generic sitagliptin launched at Rs 8/tablet vs branded Rs 22. Market share dropped 15% in 3 months. Recommendation: Focus on FDC with metformin, patient compliance programs."
+    },
+    {
+        "doc_id": "DOC-003",
+        "title": "Respiratory Portfolio Assessment 2024",
+        "summary": "Respiratory diseases in India present significant opportunity. COPD and IPF have low generic competition and high patient burden.",
+        "tags": [
+            "Respiratory",
+            "India",
+            "Portfolio",
+            "COPD",
+            "IPF"
+        ],
+        "content": "India respiratory market at $1.2B, growing 14% annually. COPD affects 55M patients with limited treatment options. IPF is underdiagnosed but growing awareness. Recommendation: Prioritize Pirfenidone generic and Roflumilast FDC development. Low competition in specialty respiratory segment."
+    },
+    {
+        "doc_id": "DOC-004",
+        "title": "SWOT Analysis: Respiratory Biologics",
+        "summary": "Assessment of Omalizumab and other respiratory biologics opportunity in emerging markets.",
+        "tags": [
+            "Respiratory",
+            "Biologics",
+            "SWOT",
+            "Omalizumab"
+        ],
+        "content": "Strengths: First-mover advantage in biosimilar, established cold chain. Weaknesses: High manufacturing cost, limited awareness. Opportunities: Growing severe asthma diagnosis, low competition. Threats: Newer IL-5 inhibitors gaining traction. Recommendation: Partner with pulmonologists for patient identification programs."
+    },
+    {
+        "doc_id": "DOC-005",
+        "title": "Innovation Pipeline: Oral Formulations",
+        "summary": "R&D focus on converting injectables to oral formulations for improved patient compliance.",
+        "tags": [
+            "Innovation",
+            "R&D",
+            "Formulation"
+        ],
+        "content": "Patient feedback consistently highlights needle pain and injection anxiety as barriers. Priority molecules for oral conversion: GLP-1 agonists, biologics. Technology platforms: SNEDDS, nanoparticle delivery. Timeline: 3-5 years for proof of concept."
+    }
+]

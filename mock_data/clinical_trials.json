@@ -1,0 +1,159 @@
+[
+    {
+        "indication": "Non-Small Cell Lung Cancer",
+        "active_trials": [
+            {
+                "nct_id": "NCT01234567",
+                "phase": "Phase III",
+                "drug_name": "Pembrolizumab",
+                "sponsor": "Merck Sharp & Dohme"
+            },
+            {
+                "nct_id": "NCT07654321",
+                "phase": "Phase II",
+                "drug_name": "Novel IO Agent",
+                "sponsor": "Roche"
+            }
+        ]
+    },
+    {
+        "indication": "Type 2 Diabetes",
+        "active_trials": [
+            {
+                "nct_id": "NCT09876543",
+                "phase": "Phase IV",
+                "drug_name": "Sitagliptin",
+                "sponsor": "Merck"
+            }
+        ]
+    },
+    {
+        "indication": "Idiopathic Pulmonary Fibrosis",
+        "therapy_area": "Respiratory",
+        "patient_burden_score": 8.5,
+        "active_trials": [
+            {
+                "nct_id": "NCT04123456",
+                "phase": "Phase III",
+                "drug_name": "Pirfenidone",
+                "sponsor": "Roche"
+            }
+        ],
+        "competition_density": "Low",
+        "unmet_need": "High"
+    },
+    {
+        "indication": "COPD",
+        "therapy_area": "Respiratory",
+        "patient_burden_score": 9.2,
+        "active_trials": [
+            {
+                "nct_id": "NCT04234567",
+                "phase": "Phase II",
+                "drug_name": "Roflumilast Extended Release",
+                "sponsor": "AstraZeneca"
+            },
+            {
+                "nct_id": "NCT04234568",
+                "phase": "Phase III",
+                "drug_name": "Ensifentrine",
+                "sponsor": "Verona Pharma"
+            }
+        ],
+        "competition_density": "Low",
+        "unmet_need": "Very High"
+    },
+    {
+        "indication": "Severe Asthma",
+        "therapy_area": "Respiratory",
+        "patient_burden_score": 7.8,
+        "active_trials": [
+            {
+                "nct_id": "NCT04345678",
+                "phase": "Phase III",
+                "drug_name": "Tezepelumab",
+                "sponsor": "Amgen/AstraZeneca"
+            }
+        ],
+        "competition_density": "Low",
+        "unmet_need": "High"
+    },
+    {
+        "indication": "Asthma",
+        "therapy_area": "Respiratory",
+        "patient_burden_score": 6.5,
+        "active_trials": [
+            {
+                "nct_id": "NCT04456789",
+                "phase": "Phase IV",
+                "drug_name": "Fluticasone/Salmeterol",
+                "sponsor": "GSK"
+            },
+            {
+                "nct_id": "NCT04456790",
+                "phase": "Phase III",
+                "drug_name": "Budesonide/Formoterol",
+                "sponsor": "AstraZeneca"
+            },
+            {
+                "nct_id": "NCT04456791",
+                "phase": "Phase II",
+                "drug_name": "Novel ICS",
+                "sponsor": "Cipla"
+            },
+            {
+                "nct_id": "NCT04456792",
+                "phase": "Phase III",
+                "drug_name": "Ciclesonide",
+                "sponsor": "Covis Pharma"
+            }
+        ],
+        "competition_density": "High",
+        "unmet_need": "Medium"
+    },
+    {
+        "indication": "Pulmonary Arterial Hypertension",
+        "therapy_area": "Respiratory",
+        "patient_burden_score": 8.9,
+        "active_trials": [
+            {
+                "nct_id": "NCT04567890",
+                "phase": "Phase II",
+                "drug_name": "Sotatercept",
+                "sponsor": "Acceleron/Merck"
+            }
+        ],
+        "competition_density": "Low",
+        "unmet_need": "Very High"
+    },
+    {
+        "indication": "Melanoma",
+        "therapy_area": "Oncology",
+        "patient_burden_score": 7.2,
+        "active_trials": [
+            {
+                "nct_id": "NCT05123456",
+                "phase": "Phase II",
+                "drug_name": "Pembrolizumab + Novel Agent",
+                "sponsor": "Merck"
+            }
+        ],
+        "competition_density": "Medium",
+        "unmet_need": "Medium"
+    },
+    {
+        "indication": "Triple Negative Breast Cancer",
+        "therapy_area": "Oncology",
+        "patient_burden_score": 8.1,
+        "active_trials": [
+            {
+                "nct_id": "NCT05234567",
+                "phase": "Phase III",
+                "drug_name": "Pembrolizumab + Chemotherapy",
+                "sponsor": "Merck Sharp & Dohme"
+            }
+        ],
+        "competition_density": "Low",
+        "unmet_need": "High"
+    }
+]
