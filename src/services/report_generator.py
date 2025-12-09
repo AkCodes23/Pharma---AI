@@ -3,6 +3,7 @@ Report Generator Service
 Generate PDF and Excel reports from agent analysis.
 """
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -23,6 +24,52 @@ try:
 except ImportError:
     OPENPYXL_AVAILABLE = False
     print("openpyxl not installed. Excel generation disabled.")
+
+
+def clean_text_for_pdf(text: str) -> str:
+    """Clean text for PDF generation - handle unicode and special characters."""
+    if not text:
+        return ""
+    # Replace common unicode characters with ASCII equivalents
+    replacements = {
+        '\u2022': '-',  # bullet
+        '\u2019': "'",  # right single quote
+        '\u2018': "'",  # left single quote
+        '\u201c': '"',  # left double quote
+        '\u201d': '"',  # right double quote
+        '\u2013': '-',  # en dash
+        '\u2014': '-',  # em dash
+        '\u2026': '...',  # ellipsis
+        '\u00a0': ' ',  # non-breaking space
+        '\u00b7': '-',  # middle dot
+        '\u2192': '->',  # right arrow
+        '\u2190': '<-',  # left arrow
+        '\u2713': '[x]',  # checkmark
+        '\u2717': '[ ]',  # cross mark
+        '\u00ae': '(R)',  # registered
+        '\u2122': '(TM)',  # trademark
+        '\u00a9': '(C)',  # copyright
+        '\u00b0': ' degrees',  # degree symbol
+        '\u00b1': '+/-',  # plus-minus
+        '\u00d7': 'x',  # multiplication
+        '\u00f7': '/',  # division
+        '\u221e': 'infinity',  # infinity
+        '\u2264': '<=',  # less than or equal
+        '\u2265': '>=',  # greater than or equal
+        '•': '-',
+        '→': '->',
+        '←': '<-',
+        '✓': '[x]',
+        '✗': '[ ]',
+        '★': '*',
+        '☆': '*',
+    }
+    for unicode_char, ascii_char in replacements.items():
+        text = text.replace(unicode_char, ascii_char)
+    
+    # Remove any remaining non-ASCII characters or replace with ?
+    text = text.encode('ascii', 'replace').decode('ascii')
+    return text
 
 
 class ReportGenerator:
@@ -61,6 +108,11 @@ class ReportGenerator:
             pdf.set_auto_page_break(auto=True, margin=15)
             pdf.add_page()
             
+            # Clean text for PDF
+            title = clean_text_for_pdf(title)
+            query = clean_text_for_pdf(query)
+            content = clean_text_for_pdf(content)
+            
             # Title
             pdf.set_font("Helvetica", "B", 20)
             pdf.set_text_color(0, 51, 102)  # Dark blue
@@ -75,7 +127,10 @@ class ReportGenerator:
             
             if metadata:
                 if metadata.get("agents_used"):
-                    pdf.cell(0, 8, f"Agents Used: {', '.join(metadata['agents_used'])}", ln=True)
+                    agents = [clean_text_for_pdf(str(a)) for a in metadata['agents_used']]
+                    pdf.cell(0, 8, f"Agents Used: {', '.join(agents)}", ln=True)
+                if metadata.get("user"):
+                    pdf.cell(0, 8, f"User: {clean_text_for_pdf(str(metadata['user']))}", ln=True)
             
             pdf.ln(5)
             
@@ -93,6 +148,12 @@ class ReportGenerator:
             pdf.line(10, pdf.get_y(), 200, pdf.get_y())
             pdf.ln(10)
             
+            # Section: Analysis Results
+            pdf.set_font("Helvetica", "B", 14)
+            pdf.set_text_color(0, 51, 102)
+            pdf.cell(0, 10, "Analysis Results", ln=True)
+            pdf.ln(3)
+            
             # Main content
             pdf.set_font("Helvetica", "", 11)
             pdf.set_text_color(0, 0, 0)
@@ -106,8 +167,21 @@ class ReportGenerator:
                     pdf.ln(3)
                     continue
                 
-                # Handle headers
-                if line.startswith("**") and line.endswith("**"):
+                # Handle markdown headers (##, ###)
+                if line.startswith("### "):
+                    pdf.set_font("Helvetica", "B", 11)
+                    pdf.set_text_color(0, 51, 102)
+                    pdf.multi_cell(0, 7, line[4:].replace("**", ""))
+                    pdf.set_font("Helvetica", "", 11)
+                    pdf.set_text_color(0, 0, 0)
+                elif line.startswith("## "):
+                    pdf.set_font("Helvetica", "B", 12)
+                    pdf.set_text_color(0, 51, 102)
+                    pdf.multi_cell(0, 8, line[3:].replace("**", ""))
+                    pdf.set_font("Helvetica", "", 11)
+                    pdf.set_text_color(0, 0, 0)
+                # Handle bold headers
+                elif line.startswith("**") and line.endswith("**"):
                     pdf.set_font("Helvetica", "B", 12)
                     pdf.set_text_color(0, 51, 102)
                     pdf.multi_cell(0, 8, line.replace("**", ""))
@@ -115,15 +189,15 @@ class ReportGenerator:
                     pdf.set_text_color(0, 0, 0)
                 
                 # Handle bullet points
-                elif line.startswith("- ") or line.startswith("• "):
+                elif line.startswith("- ") or line.startswith("* "):
                     pdf.set_x(15)
-                    text = line[2:].replace("**", "")
-                    pdf.multi_cell(0, 6, f"• {text}")
+                    text = line[2:].replace("**", "").replace("*", "")
+                    pdf.multi_cell(0, 6, f"- {text}")
                 
                 # Handle numbered items
-                elif line[0].isdigit() and line[1:3] in [". ", ") "]:
+                elif len(line) > 2 and line[0].isdigit() and line[1:3] in [". ", ") "]:
                     pdf.set_x(15)
-                    pdf.multi_cell(0, 6, line.replace("**", ""))
+                    pdf.multi_cell(0, 6, line.replace("**", "").replace("*", ""))
                 
                 # Regular text
                 else:
@@ -137,14 +211,15 @@ class ReportGenerator:
             pdf.cell(0, 10, "Generated by Pharma Agentic AI System", ln=True, align="C")
             
             # Save PDF
-            filename = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            filename = f"pharma_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             filepath = self.output_dir / filename
             pdf.output(str(filepath))
             
             return str(filepath)
         
         except Exception as e:
-            return f"Error generating PDF: {str(e)}"
+            import traceback
+            return f"Error generating PDF: {str(e)}\n{traceback.format_exc()}"
     
     def generate_excel(
         self,

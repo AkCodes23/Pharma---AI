@@ -2,16 +2,26 @@
 Pharma Agentic AI - FastAPI Backend
 REST API for programmatic access to the multi-agent system.
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import sys
 from pathlib import Path
 from datetime import datetime
+import logging
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.infra.tasks import submit_job
+from src.infra.state import job_state_store, JobStatus
+from src.services.logging_config import setup_logging
+from src.config.settings import settings
+from src.services.orchestrator import MasterOrchestrator
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Pharma Agentic AI API",
@@ -63,6 +73,26 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class JobRequest(BaseModel):
+    """Async job submission request."""
+    query: str
+    context: Optional[Dict[str, Any]] = None
+
+
+class JobSubmitResponse(BaseModel):
+    job_id: str
+    status: str
+    submitted_at: str
+
+
+class JobStatusResponse(BaseModel):
+    job_id: str
+    status: str
+    result: Optional[str] = None
+    error: Optional[str] = None
+    updated_at: Optional[float] = None
+
+
 # Endpoints
 @app.get("/", response_model=HealthResponse)
 async def root():
@@ -84,6 +114,49 @@ async def health_check():
     )
 
 
+@app.post("/jobs", response_model=JobSubmitResponse)
+async def submit_job_endpoint(request: JobRequest):
+    """Submit an asynchronous multi-agent job."""
+    # If async queue disabled, run synchronously and store result
+    if not settings.USE_ASYNC_QUEUE:
+        job_id = uuid4().hex
+        orchestrator = MasterOrchestrator()
+        result_obj = orchestrator.process_query(request.query, request.context)
+        job_state_store.set(
+            job_id,
+            JobStatus.DONE,
+            result=str(result_obj.content),
+            meta={"finished_at": int(datetime.now().timestamp() * 1000), "duration_ms": 0},
+        )
+        return JobSubmitResponse(
+            job_id=job_id,
+            status=JobStatus.DONE,
+            submitted_at=datetime.now().isoformat(),
+        )
+
+    job_info = submit_job(request.query, request.context or {})
+    return JobSubmitResponse(
+        job_id=job_info["job_id"],
+        status=JobStatus.QUEUED,
+        submitted_at=datetime.now().isoformat(),
+    )
+
+
+@app.get("/jobs/{job_id}", response_model=JobStatusResponse)
+async def get_job_status(job_id: str):
+    """Check status/result for a previously submitted job."""
+    state = job_state_store.get(job_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="job not found")
+    return JobStatusResponse(
+        job_id=job_id,
+        status=state.status,
+        result=state.result,
+        error=state.error,
+        updated_at=state.updated_at,
+    )
+
+
 @app.post("/query", response_model=QueryResponse)
 async def run_query(request: QueryRequest):
     """
@@ -92,37 +165,27 @@ async def run_query(request: QueryRequest):
     This endpoint orchestrates multiple specialized agents to answer
     complex pharmaceutical strategy questions.
     """
-    import time
-    start_time = time.time()
-    
+    start_time = datetime.now()
+    orchestrator = MasterOrchestrator()
+
     try:
-        from src.agents.master_agent import create_master_crew, classify_intent
-        
-        # Classify intent
-        agents_needed = classify_intent(request.query)
-        
-        # Create and run crew
-        crew = create_master_crew(request.query)
-        result = crew.kickoff()
-        response_text = str(result)
-        
-        # Determine sources
-        sources = []
+        result_obj = orchestrator.process_query(request.query)
+        response_text = result_obj.content
+        agents_used = [r.agent_type.value for r in result_obj.individual_responses if r.success]
+
         source_map = {
-            "iqvia": "IQVIA Market Database",
+            "market": "IQVIA Market Database",
             "patent": "USPTO Patent Database",
             "clinical": "Clinical Trials Registry",
-            "social": "Patient Forums & Social Media",
+            "patient": "Patient Forums & Social Media",
             "competitor": "Competitive Intelligence Reports",
             "internal": "Internal Strategy Documents",
-            "exim": "EXIM Trade Database",
-            "web": "Web Intelligence"
+            "trade": "EXIM Trade Database",
+            "web": "Web Intelligence",
+            "general": "General LLM"
         }
-        for agent in agents_needed:
-            if agent in source_map:
-                sources.append(source_map[agent])
-        
-        # Generate reports if requested
+        sources = [source_map.get(a.lower(), a) for a in agents_used]
+
         reports = []
         if request.generate_pdf:
             from src.services.report_generator import generate_pdf_report
@@ -130,11 +193,11 @@ async def run_query(request: QueryRequest):
                 title="Pharma Strategy Analysis",
                 query=request.query,
                 content=response_text,
-                metadata={"agents_used": agents_needed}
+                metadata={"agents_used": agents_used}
             )
-            if not pdf_path.startswith("Error"):
+            if pdf_path and not pdf_path.startswith("Error"):
                 reports.append({"type": "PDF", "path": pdf_path})
-        
+
         if request.generate_excel:
             from src.services.report_generator import generate_excel_report
             data = {"findings": [], "recommendations": []}
@@ -142,23 +205,23 @@ async def run_query(request: QueryRequest):
                 title="Pharma Strategy Analysis",
                 query=request.query,
                 data=data,
-                metadata={"agents_used": agents_needed}
+                metadata={"agents_used": agents_used}
             )
-            if not excel_path.startswith("Error"):
+            if excel_path and not excel_path.startswith("Error"):
                 reports.append({"type": "Excel", "path": excel_path})
-        
-        execution_time = (time.time() - start_time) * 1000
-        
+
+        execution_time = (datetime.now() - start_time).total_seconds() * 1000
+
         return QueryResponse(
             query=request.query,
             response=response_text,
-            agents_used=agents_needed,
+            agents_used=agents_used,
             sources=sources,
             reports=reports,
             timestamp=datetime.now().isoformat(),
             execution_time_ms=round(execution_time, 2)
         )
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
