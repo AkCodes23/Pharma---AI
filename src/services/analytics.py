@@ -202,9 +202,28 @@ class ChartService:
             template="plotly_white"
         )
         
-        # Add today line - convert datetime to string for plotly
+        # Add today line - use shape instead of vline to avoid annotation issues
         today = datetime.now()
-        fig.add_vline(x=today.strftime("%Y-%m-%d"), line_dash="dash", line_color="red", annotation_text="Today")
+        today_str = today.strftime("%Y-%m-%d")
+        
+        fig.add_shape(
+            type="line",
+            x0=today_str, x1=today_str,
+            y0=0, y1=1,
+            yref="paper",
+            line=dict(color="red", dash="dash", width=2)
+        )
+        
+        # Add annotation separately
+        fig.add_annotation(
+            x=today_str,
+            y=1,
+            yref="paper",
+            text="Today",
+            showarrow=False,
+            font=dict(color="red"),
+            yshift=10
+        )
         
         return fig
     

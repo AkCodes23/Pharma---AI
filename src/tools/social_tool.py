@@ -1,18 +1,110 @@
 """
 Social Media Listening Tool
-Queries mock social media data for patient voice analysis.
+Queries database for patient voice analysis.
 """
 import json
 from typing import Optional
 from crewai.tools import tool
 from pathlib import Path
+import sys
+
+# Add project root to path
+project_root = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+
+def _extract_entity_from_query(query: str, entity_type: str = "therapy_area") -> str:
+    """Extract entities from natural language query."""
+    if not query:
+        return None
+    
+    query_lower = query.lower()
+    
+    if entity_type == "therapy_area":
+        areas = {
+            "diabetes": ["diabetes", "diabetic", "injectable", "insulin", "glp-1", "weight", "obesity"],
+            "respiratory": ["respiratory", "inhaler", "copd", "asthma", "pulmonary"],
+            "oncology": ["oncology", "cancer", "chemo", "tumor"],
+            "cardiovascular": ["cardiac", "heart", "cardiovascular", "blood pressure", "cholesterol"],
+            "cns": ["depression", "anxiety", "mental", "psychiatric", "neuro", "brain"],
+            "autoimmune": ["autoimmune", "rheumatoid", "crohn", "arthritis", "psoriasis"],
+            "analgesic": ["pain", "fever", "headache", "analgesic"],
+            "gastrointestinal": ["gerd", "acid", "reflux", "gastro", "ulcer", "stomach"]
+        }
+        for area, keywords in areas.items():
+            for keyword in keywords:
+                if keyword in query_lower:
+                    return area.capitalize() if area not in ["cns"] else area.upper()
+    
+    elif entity_type == "molecule":
+        # Brand name mappings
+        brand_to_molecule = {
+            "ozempic": "Semaglutide", "wegovy": "Semaglutide",
+            "mounjaro": "Tirzepatide", "humira": "Adalimumab",
+            "dolo": "Paracetamol", "calpol": "Paracetamol",
+            "pan": "Pantoprazole", "nexito": "Escitalopram"
+        }
+        for brand, mol in brand_to_molecule.items():
+            if brand in query_lower:
+                return mol
+        
+        known_molecules = [
+            "insulin", "semaglutide", "tirzepatide", "metformin", "sitagliptin",
+            "adalimumab", "escitalopram", "pantoprazole", "paracetamol",
+            "atorvastatin", "amlodipine", "rivaroxaban", "azithromycin", "montelukast",
+            "tiotropium", "fluticasone", "pirfenidone", "pembrolizumab", "trastuzumab", "lenalidomide"
+        ]
+        for mol in known_molecules:
+            if mol in query_lower:
+                return mol.capitalize()
+    
+    return None
+
+
+def _query_database(therapy_area: str = None, molecule: str = None):
+    """Query social posts from database."""
+    try:
+        from src.database.db import get_db_session
+        from src.database.models import SocialPost
+        
+        with get_db_session() as session:
+            query = session.query(SocialPost)
+            
+            if therapy_area:
+                query = query.filter(SocialPost.therapy_area.ilike(f"%{therapy_area}%"))
+            if molecule:
+                query = query.filter(SocialPost.molecule.ilike(f"%{molecule}%"))
+            
+            results = query.all()
+            
+            if not results:
+                return None
+            
+            return [{
+                "molecule": r.molecule,
+                "therapy_area": r.therapy_area,
+                "source": r.source,
+                "date": r.post_date.strftime("%Y-%m-%d") if r.post_date else "N/A",
+                "post_text": r.post_text,
+                "sentiment": r.sentiment or 0,
+                "complaint_theme": r.complaint_theme
+            } for r in results]
+    except Exception as e:
+        print(f"Database query error: {e}")
+        return None
 
 
 def _load_social_data() -> list:
-    """Load social media mock data from JSON file."""
+    """Load social data from database, fallback to JSON."""
+    db_data = _query_database()
+    if db_data:
+        return db_data
+    
     data_path = Path(__file__).resolve().parent.parent.parent / "mock_data" / "social_media_posts.json"
-    with open(data_path, "r") as f:
-        return json.load(f)
+    if data_path.exists():
+        with open(data_path, "r") as f:
+            return json.load(f)
+    return []
 
 
 @tool("Query Social Media Sentiment")
@@ -61,18 +153,28 @@ def query_social_media(molecule: Optional[str] = None, therapy_area: Optional[st
 
 
 @tool("Analyze Patient Complaints")
-def analyze_patient_complaints(therapy_area: str) -> str:
+def analyze_patient_complaints(therapy_area: str = None, query: Optional[str] = None) -> str:
     """
     Analyze common patient complaints for a therapy area to identify innovation opportunities.
     
     Args:
         therapy_area: Therapeutic area to analyze (e.g., 'Diabetes', 'Respiratory')
+        query: Natural language query to extract therapy area from
     
     Returns:
         Summary of complaint themes and innovation opportunities.
     """
     try:
-        data = _load_social_data()
+        # Extract from query if not provided
+        if not therapy_area and query:
+            therapy_area = _extract_entity_from_query(query, "therapy_area")
+        
+        if not therapy_area:
+            therapy_area = query or "unspecified"
+        
+        # Try database first
+        db_data = _query_database(therapy_area=therapy_area)
+        data = db_data if db_data else _load_social_data()
         
         # Filter by therapy area
         posts = [p for p in data if therapy_area.lower() in p.get("therapy_area", "").lower()]

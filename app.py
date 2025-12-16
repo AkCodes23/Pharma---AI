@@ -6,6 +6,9 @@ import streamlit as st
 import sys
 from pathlib import Path
 from datetime import datetime
+import os
+import time
+import httpx
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -135,7 +138,10 @@ def init_session():
         # UI state
         "show_login": True,
         "error_message": None,
-        "success_message": None
+        "success_message": None,
+        # Async jobs
+        "job_status": None,
+        "job_polling": False,
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -453,73 +459,166 @@ def search_web(query: str) -> str:
 
 
 def run_demo_query(query: str) -> tuple:
-    """Run query using tools directly, with LLM fallback for general questions."""
-    q = query.lower()
-    responses = []
-    agents_used = []
-    
+    """Run query using intelligent orchestrator with guardrails and intent classification."""
     try:
+        # Import new services
+        from src.services.guardrails import GuardrailsService
+        from src.services.intent_classifier import IntentClassifier
+        from src.services.rag_service import get_rag_context
+        
+        # Initialize services
+        guardrails = GuardrailsService()
+        
+        # Step 1: Apply guardrails
+        is_safe, safety_result = guardrails.validate_query(query)
+        
+        if not is_safe:
+            return f"⚠️ **Query Not Allowed**\n\n{safety_result.get('reason', 'This query cannot be processed.')}\n\n*Please rephrase your question to focus on legitimate pharmaceutical business intelligence.*", ["Guardrails"]
+        
+        # Get sanitized query
+        clean_query = guardrails.sanitize_input(query)
+        
+        # Step 2: Classify intent
+        intent_classifier = IntentClassifier()
+        intent_result = intent_classifier.classify_intent(clean_query)
+        
+        # Step 3: Get RAG context for relevant queries
+        rag_context = ""
+        if intent_result.intent_type.value in ["internal", "general"]:
+            rag_context = get_rag_context(clean_query, max_tokens=1500)
+        
+        # Step 4: Route to appropriate tools based on intent
+        responses = []
+        agents_used = []
+        
+        intent_type = intent_result.intent_type.value
+        entities = intent_result.entities
+        
         # Market/Whitespace queries
-        if any(w in q for w in ["market", "whitespace", "competition level", "cagr", "market size"]):
-            from src.tools.iqvia_tool import find_low_competition_markets, query_iqvia_market
-            if "respiratory" in q or "copd" in q or "ipf" in q or "asthma" in q:
-                responses.append(find_low_competition_markets._run(therapy_area="Respiratory", region="India"))
-            else:
-                responses.append(query_iqvia_market._run(therapy_area="Oncology"))
-            agents_used.append("Market")
+        if intent_type == "market" or intent_result.confidence < 0.6:
+            try:
+                from src.tools.iqvia_tool import find_low_competition_markets, query_iqvia_market
+                # Get entities from intent if available, otherwise let tool extract from query
+                therapy_area = entities.get("therapy_areas", [None])[0] if entities.get("therapy_areas") else None
+                region = entities.get("regions", [None])[0] if entities.get("regions") else None
+                
+                if "whitespace" in clean_query.lower() or "competition" in clean_query.lower():
+                    responses.append(find_low_competition_markets._run(therapy_area=therapy_area, region=region, query=clean_query))
+                else:
+                    responses.append(query_iqvia_market._run(therapy_area=therapy_area, query=clean_query))
+                agents_used.append("Market Analyst")
+            except Exception as e:
+                pass
         
         # Patent queries
-        if any(w in q for w in ["patent", "expiry", "fto", "freedom to operate"]):
-            from src.tools.patent_tool import check_patent_expiry, query_patents
-            if "sitagliptin" in q:
-                responses.append(check_patent_expiry._run(molecule="Sitagliptin", country="US"))
-            elif "pembrolizumab" in q:
-                responses.append(query_patents._run(molecule="Pembrolizumab"))
-            else:
-                responses.append(check_patent_expiry._run(molecule="Rivaroxaban", country="US"))
-            agents_used.append("Patent")
+        if intent_type == "patent":
+            try:
+                from src.tools.patent_tool import check_patent_expiry, query_patents
+                # Get molecule from entities if available, otherwise pass None to let tool extract from query
+                molecule = entities.get("molecules", [None])[0] if entities.get("molecules") else None
+                
+                if "expiry" in clean_query.lower() or "expire" in clean_query.lower():
+                    responses.append(check_patent_expiry._run(molecule=molecule, country="US", query=clean_query))
+                else:
+                    responses.append(query_patents._run(molecule=molecule, query=clean_query))
+                agents_used.append("Patent Analyst")
+            except Exception as e:
+                pass
         
-        # Clinical/Repurposing queries
-        if any(w in q for w in ["trial", "clinical", "repurpos", "pipeline"]):
-            from src.tools.clinical_tool import find_repurposing_opportunities, query_clinical_trials
-            if "pembrolizumab" in q:
-                responses.append(find_repurposing_opportunities._run(molecule="Pembrolizumab"))
-            else:
-                responses.append(query_clinical_trials._run(indication="Oncology"))
-            agents_used.append("Clinical")
+        # Clinical/Trial queries
+        if intent_type == "clinical":
+            try:
+                from src.tools.clinical_tool import find_repurposing_opportunities, query_clinical_trials
+                molecule = entities.get("molecules", [None])[0] if entities.get("molecules") else None
+                therapy_area = entities.get("therapy_areas", [None])[0] if entities.get("therapy_areas") else None
+                
+                if "repurpos" in clean_query.lower() and molecule:
+                    responses.append(find_repurposing_opportunities._run(molecule=molecule, query=clean_query))
+                else:
+                    responses.append(query_clinical_trials._run(indication=therapy_area, query=clean_query))
+                agents_used.append("Clinical Research")
+            except Exception as e:
+                pass
         
         # Patient voice queries
-        if any(w in q for w in ["patient complain", "patient voice", "patient feedback", "injectable"]):
-            from src.tools.social_tool import analyze_patient_complaints
-            responses.append(analyze_patient_complaints._run(therapy_area="Diabetes"))
-            agents_used.append("Patient")
+        if intent_type == "patient":
+            try:
+                from src.tools.social_tool import analyze_patient_complaints
+                therapy_area = entities.get("therapy_areas", [None])[0] if entities.get("therapy_areas") else None
+                responses.append(analyze_patient_complaints._run(therapy_area=therapy_area, query=clean_query))
+                agents_used.append("Patient Voice")
+            except Exception as e:
+                pass
         
-        # Competitor/War game queries
-        if any(w in q for w in ["competitor", "war game", "simulate launch", "competitive threat"]):
-            from src.tools.competitor_tool import war_game_scenario
-            responses.append(war_game_scenario._run(molecule="Rivaroxaban", proposed_strategy="Launch generic in 2025"))
-            agents_used.append("Competitor")
+        # Competitor queries
+        if intent_type == "competitor":
+            try:
+                from src.tools.competitor_tool import war_game_scenario, get_competitor_strategy
+                # Get molecule/company from entities if available, otherwise let tool extract from query
+                molecule = entities.get("molecules", [None])[0] if entities.get("molecules") else None
+                company = entities.get("companies", [None])[0] if entities.get("companies") else None
+                
+                if "war game" in clean_query.lower() or "simulate" in clean_query.lower():
+                    responses.append(war_game_scenario._run(molecule=molecule, proposed_strategy="Market entry", query=clean_query))
+                elif company:
+                    responses.append(get_competitor_strategy._run(company=company, query=clean_query))
+                else:
+                    responses.append(war_game_scenario._run(molecule=molecule, proposed_strategy="Competitive analysis", query=clean_query))
+                agents_used.append("Competitor Intel")
+            except Exception as e:
+                pass
         
-        # If we have tool responses, return them
-        if responses:
-            return "\n\n---\n\n".join(responses), agents_used
+        # Trade queries
+        if intent_type == "trade":
+            try:
+                from src.tools.exim_tool import query_exim_trade
+                molecule = entities.get("molecules", [None])[0] if entities.get("molecules") else None
+                responses.append(query_exim_trade._run(molecule=molecule, query=clean_query))
+                agents_used.append("Trade Analyst")
+            except Exception as e:
+                pass
         
-        # Try web search for current/news queries
-        if any(w in q for w in ["latest", "recent", "news", "current", "2024", "2025", "today", "update", "fda"]):
-            web_result = search_web(query)
+        # Internal document queries
+        if intent_type == "internal":
+            try:
+                from src.tools.internal_tool import search_internal_docs
+                responses.append(search_internal_docs._run(query=clean_query))
+                agents_used.append("Internal Docs")
+            except Exception as e:
+                pass
+        
+        # Web search for current/news queries
+        if intent_type == "web" or "latest" in clean_query.lower() or "news" in clean_query.lower():
+            web_result = search_web(clean_query)
             if web_result:
-                return web_result, ["Web Search"]
+                responses.append(web_result)
+                agents_used.append("Web Search")
         
-        # Otherwise, use LLM with optional web context
-        return ask_llm(query)
+        # If we have tool responses, synthesize them
+        if responses:
+            # Combine responses
+            combined = "\n\n---\n\n".join(responses)
+            
+            # Add RAG context if available
+            if rag_context:
+                combined = f"{combined}\n\n---\n\n**Additional Context from Internal Documents:**\n{rag_context}"
+            
+            # Filter response through guardrails
+            filtered = guardrails.filter_response(combined)
+            
+            return filtered, agents_used
+        
+        # Fallback to LLM with RAG context
+        return ask_llm_with_context(clean_query, rag_context, intent_result)
             
     except Exception as e:
-        # Return user-friendly error message
-        return f"⚠️ **Something went wrong**\n\nI encountered an issue processing your request. Please try:\n- Rephrasing your question\n- Being more specific about the molecule or therapy area\n- Checking if the data exists in our system\n\n*Technical details: {str(e)[:100]}*", ["System"]
+        import traceback
+        error_detail = str(e)[:200]
+        return f"⚠️ **Something went wrong**\n\nI encountered an issue processing your request. Please try:\n- Rephrasing your question\n- Being more specific about the molecule or therapy area\n\n*Technical details: {error_detail}*", ["System"]
 
 
-def ask_llm(query: str) -> tuple:
-    """Use Groq LLM to answer general pharmaceutical questions, with web search and conversation context."""
+def ask_llm_with_context(query: str, rag_context: str = "", intent_result = None) -> tuple:
+    """Use Groq LLM with RAG context and intent information."""
     import os
     from groq import Groq
     from dotenv import load_dotenv
@@ -533,52 +632,69 @@ def ask_llm(query: str) -> tuple:
         allowed, current, limit = RateLimiter.check_limit("groq", user_id)
         
         if not allowed:
-            return f"⚠️ **Rate limit reached** ({current}/{limit} calls today)\n\nYour daily API quota has been reached. Please try again tomorrow or contact an administrator for increased limits.", []
+            return f"⚠️ **Rate limit reached** ({current}/{limit} calls today)\n\nYour daily API quota has been reached. Please try again tomorrow.", []
     except:
         pass
     
     try:
-        web_context = search_web(query)
+        # Get web context for current events
+        web_context = ""
+        if any(w in query.lower() for w in ["latest", "recent", "news", "2024", "2025", "fda", "approval"]):
+            web_context = search_web(query) or ""
         
         client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         
-        system_prompt = """You are a pharmaceutical intelligence assistant. You provide accurate, 
-helpful information about:
-- Medications, drugs, and their uses
-- Dosages and administration
-- Side effects and contraindications
-- Drug interactions
-- General pharmaceutical knowledge
-- Medical conditions and treatments
+        # Build enhanced system prompt
+        system_prompt = """You are an expert pharmaceutical intelligence assistant with deep knowledge of:
+- Drug development and clinical trials
+- Patent landscapes and IP strategy
+- Market dynamics and competitive intelligence
+- Regulatory affairs (FDA, EMA, etc.)
+- Healthcare economics and pricing
+- Patient outcomes and real-world evidence
 
-Always include appropriate disclaimers about consulting healthcare professionals for medical advice.
-Be concise but comprehensive. Format your response with clear headings and bullet points when appropriate.
-If the user refers to previous context (like "it", "that drug", "the molecule"), use the conversation history to understand what they're referring to."""
+You have access to internal company documents and market data to provide accurate, actionable insights.
 
-        # Build messages with conversation context
+Guidelines:
+1. Be concise but comprehensive
+2. Use bullet points and clear formatting
+3. Include relevant data points and metrics when available
+4. Cite sources when referencing specific information
+5. Provide strategic recommendations when appropriate
+6. Always include appropriate disclaimers for medical/clinical information
+7. If referring to previous context, use conversation history to understand references"""
+
+        # Add intent context if available
+        if intent_result:
+            entities_str = ", ".join([f"{k}: {v}" for k, v in intent_result.entities.items() if v])
+            system_prompt += f"\n\nThe user's query is about: {intent_result.intent_type.value}"
+            if entities_str:
+                system_prompt += f"\nKey entities mentioned: {entities_str}"
+        
+        # Build messages
         messages = [{"role": "system", "content": system_prompt}]
         
-        # Add recent conversation history for context (last 6 messages)
+        # Add conversation history
         if st.session_state.messages:
-            recent_history = st.session_state.messages[-6:]
-            for msg in recent_history:
+            for msg in st.session_state.messages[-6:]:
                 role = "user" if msg["role"] == "user" else "assistant"
-                # Truncate long messages for context
-                content = msg["content"][:1000] + "..." if len(msg["content"]) > 1000 else msg["content"]
+                content = msg["content"][:800] + "..." if len(msg["content"]) > 800 else msg["content"]
                 messages.append({"role": role, "content": content})
         
-        # Build current user message
-        user_message = query
+        # Build user message with context
+        user_message = f"Question: {query}"
+        
+        agents = ["AI Assistant"]
+        
+        if rag_context:
+            user_message += f"\n\n{rag_context}"
+            agents.append("Internal Docs")
+        
         if web_context:
-            user_message = f"""Question: {query}
-
-Here is some relevant information from the web:
-{web_context}
-
-Please provide a comprehensive answer based on this information and your knowledge."""
-            agents = ["Web Search", "AI Assistant"]
-        else:
-            agents = ["AI Assistant"]
+            user_message += f"\n\n## Recent Web Information:\n{web_context}"
+            agents.append("Web Search")
+        
+        user_message += "\n\nPlease provide a comprehensive, well-structured answer."
         
         messages.append({"role": "user", "content": user_message})
 
@@ -598,60 +714,103 @@ Please provide a comprehensive answer based on this information and your knowled
             pass
         
         answer = response.choices[0].message.content
+        
+        # Filter through guardrails
+        try:
+            from src.services.guardrails import GuardrailsService
+            guardrails = GuardrailsService()
+            answer = guardrails.filter_response(answer)
+        except:
+            pass
+        
         return answer, agents
         
     except Exception as e:
         error_msg = str(e)
-        if "rate_limit" in error_msg.lower():
-            return "⚠️ **API Rate Limit**\n\nThe AI service is temporarily rate-limited. Please wait a moment and try again.", []
-        elif "api_key" in error_msg.lower() or "authentication" in error_msg.lower():
-            return "⚠️ **Configuration Error**\n\nThe AI service is not properly configured. Please contact an administrator.", []
-        else:
-            return f"⚠️ **Service Unavailable**\n\nI couldn't connect to the AI service. Please try again in a moment.\n\n*Error: {error_msg[:100]}*", []
+        if "rate" in error_msg.lower() or "limit" in error_msg.lower():
+            return f"⚠️ **API Rate Limited**\n\nThe AI service is temporarily unavailable. Please wait a moment and try again.", []
+        return f"⚠️ **Service Unavailable**\n\nI couldn't connect to the AI service. Please try again.\n\n*Error: {error_msg[:100]}*", []
 
 
-def export_report(format_type: str):
-    """Export last response as PDF or Excel."""
+def export_report(format_type: str) -> tuple:
+    """Export last response as PDF or Excel and return (file_path, file_bytes, filename)."""
     if not st.session_state.last_response:
-        return None
+        return None, None, None
     
     try:
         if format_type == "PDF":
             from src.services.report_generator import generate_pdf_report
             path = generate_pdf_report(
                 title="Pharma Strategy Analysis",
-                query=st.session_state.last_query,
+                query=st.session_state.last_query or "Analysis Report",
                 content=st.session_state.last_response,
                 metadata={
                     "agents_used": st.session_state.last_agents,
                     "user": st.session_state.user.get("username", "anonymous") if st.session_state.user else "anonymous"
                 }
             )
-            return path if not path.startswith("Error") else None
+            if path and not path.startswith("Error"):
+                with open(path, "rb") as f:
+                    file_bytes = f.read()
+                return path, file_bytes, Path(path).name
+            return None, None, None
         else:
             from src.services.report_generator import generate_excel_report
-            findings = [
-                line.strip()[2:] for line in st.session_state.last_response.split("\n")
-                if line.strip().startswith("- ") or line.strip().startswith("• ")
-            ]
+            # Parse response into structured data
+            lines = st.session_state.last_response.split("\n")
+            findings = []
+            recommendations = []
+            current_section = "findings"
+            
+            for line in lines:
+                line = line.strip()
+                if "recommendation" in line.lower():
+                    current_section = "recommendations"
+                elif line.startswith("- ") or line.startswith("• "):
+                    text = line[2:].strip()
+                    if current_section == "findings":
+                        findings.append(text)
+                    else:
+                        recommendations.append(text)
+                elif line.startswith("* "):
+                    text = line[2:].strip()
+                    if current_section == "findings":
+                        findings.append(text)
+                    else:
+                        recommendations.append(text)
+            
+            # If no bullets found, split by sentences
+            if not findings:
+                import re
+                sentences = re.split(r'[.!?]\s+', st.session_state.last_response)
+                findings = [s.strip() for s in sentences if len(s.strip()) > 20][:15]
+            
             path = generate_excel_report(
                 title="Pharma Strategy Analysis",
-                query=st.session_state.last_query,
-                data={"findings": findings[:20], "recommendations": []},
+                query=st.session_state.last_query or "Analysis Report",
+                data={
+                    "findings": findings[:20],
+                    "recommendations": recommendations[:10] if recommendations else ["See findings for detailed analysis"]
+                },
                 metadata={
                     "agents_used": st.session_state.last_agents,
                     "user": st.session_state.user.get("username", "anonymous") if st.session_state.user else "anonymous"
                 }
             )
-            return path if not path.startswith("Error") else None
+            if path and not path.startswith("Error"):
+                with open(path, "rb") as f:
+                    file_bytes = f.read()
+                return path, file_bytes, Path(path).name
+            return None, None, None
     except Exception as e:
         st.error(f"Export failed: {e}")
-        return None
+        import traceback
+        st.error(traceback.format_exc())
+        return None, None, None
 
 
 def process_message(query: str):
     """Process a user message."""
-    import time
     start_time = time.time()
     
     # Add user message
@@ -676,33 +835,85 @@ def process_message(query: str):
     q_lower = query.lower()
     if any(w in q_lower for w in ["export", "download", "generate report", "create pdf", "create excel", "save"]):
         if "pdf" in q_lower:
-            path = export_report("PDF")
-            if path:
-                response = f"✅ **PDF Report Generated**\n\nSaved to: `{path}`"
+            path, file_bytes, filename = export_report("PDF")
+            if path and file_bytes:
+                response = f"✅ **PDF Report Ready!**\n\nUse the **Download PDF** button below to save your report.\n\n📁 File: `{filename}`"
             else:
-                response = "❌ No analysis available to export. Ask a question first."
+                response = "❌ No analysis available to export. Ask a question first, then you can export it."
         elif "excel" in q_lower:
-            path = export_report("Excel")
-            if path:
-                response = f"✅ **Excel Report Generated**\n\nSaved to: `{path}`"
+            path, file_bytes, filename = export_report("Excel")
+            if path and file_bytes:
+                response = f"✅ **Excel Report Ready!**\n\nUse the **Download Excel** button below to save your report.\n\n📁 File: `{filename}`"
             else:
-                response = "❌ No analysis available to export. Ask a question first."
+                response = "❌ No analysis available to export. Ask a question first, then you can export it."
         else:
-            response = "📄 **Export Options:**\n\n- Say **'export as PDF'** to generate a PDF report\n- Say **'export as Excel'** for a spreadsheet"
+            response = "📄 **Export Options:**\n\nUse the download buttons at the bottom of the chat to export your analysis:\n\n- **📥 Download PDF** - Professional PDF report\n- **📊 Download Excel** - Spreadsheet with structured data\n\n*Or say 'export as PDF' or 'export as Excel'*"
         
         st.session_state.messages.append({"role": "assistant", "content": response, "agents": []})
         return
     
-    # Run the query
+    # Run the query via async API if enabled, otherwise fallback
     success = True
     error_msg = None
-    try:
-        response, agents_used = run_demo_query(query)
-    except Exception as e:
-        success = False
-        error_msg = str(e)
-        response = f"⚠️ An error occurred: {str(e)}"
-        agents_used = ["System"]
+    response = ""
+    agents_used = []
+    api_base = os.getenv("API_BASE_URL", "http://localhost:8000")
+
+    use_async = os.getenv("USE_ASYNC_QUEUE", "false").lower() == "true"
+
+    if use_async:
+        try:
+            with st.spinner("🚀 Sending to orchestrator..."):
+                with httpx.Client(timeout=5.0) as client:
+                    submit = client.post(f"{api_base}/jobs", json={"query": query, "context": {}})
+                    submit.raise_for_status()
+                    job_id = submit.json()["job_id"]
+
+                # Poll for completion
+                poll_start = time.time()
+                backoff = 1.0
+                while True:
+                    with httpx.Client(timeout=5.0) as client:
+                        res = client.get(f"{api_base}/jobs/{job_id}")
+                        if res.status_code == 404:
+                            raise RuntimeError("Job not found after submission.")
+                        res.raise_for_status()
+                        payload = res.json()
+                        status = payload.get("status")
+                        if status in ("done", "failed"):
+                            if status == "done":
+                                response = payload.get("result", "")
+                                agents_used = ["Orchestrator"]
+                            else:
+                                success = False
+                                error_msg = payload.get("error", "Job failed")
+                                response = f"⚠️ Job failed: {error_msg}"
+                            break
+                    if time.time() - poll_start > 60:
+                        success = False
+                        error_msg = "Job timed out"
+                        response = "⚠️ The job is taking too long. Please try again later."
+                        break
+                    time.sleep(backoff)
+                    backoff = min(5.0, backoff + 0.5)
+        except Exception:
+            # Fallback to local execution
+            try:
+                response, agents_used = run_demo_query(query)
+            except Exception as e:
+                success = False
+                error_msg = str(e)
+                response = f"⚠️ An error occurred: {str(e)}"
+                agents_used = ["System"]
+    else:
+        # Synchronous local path
+        try:
+            response, agents_used = run_demo_query(query)
+        except Exception as e:
+            success = False
+            error_msg = str(e)
+            response = f"⚠️ An error occurred: {str(e)}"
+            agents_used = ["System"]
     
     # Calculate response time
     response_time_ms = int((time.time() - start_time) * 1000)
@@ -767,22 +978,40 @@ def chat_interface():
 
 
 def export_buttons():
-    """Export controls at bottom."""
+    """Export controls at bottom with download functionality."""
     if st.session_state.last_response:
         st.markdown("---")
-        cols = st.columns([3, 1, 1])
+        cols = st.columns([2, 1, 1])
         with cols[0]:
-            st.caption("💡 *Say 'export as PDF' or 'export as Excel' to save the analysis*")
+            st.caption("💡 *Download your analysis report*")
         with cols[1]:
-            if st.button("📥 PDF", use_container_width=True):
-                path = export_report("PDF")
-                if path:
-                    st.success(f"Saved: {Path(path).name}")
+            # PDF Download
+            path, file_bytes, filename = export_report("PDF")
+            if file_bytes:
+                st.download_button(
+                    label="📥 Download PDF",
+                    data=file_bytes,
+                    file_name=filename,
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+            else:
+                if st.button("📥 PDF", use_container_width=True, disabled=True):
+                    pass
         with cols[2]:
-            if st.button("📊 Excel", use_container_width=True):
-                path = export_report("Excel")
-                if path:
-                    st.success(f"Saved: {Path(path).name}")
+            # Excel Download
+            path, file_bytes, filename = export_report("Excel")
+            if file_bytes:
+                st.download_button(
+                    label="📊 Download Excel",
+                    data=file_bytes,
+                    file_name=filename,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+            else:
+                if st.button("📊 Excel", use_container_width=True, disabled=True):
+                    pass
 
 
 def main():

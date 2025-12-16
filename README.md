@@ -192,3 +192,10 @@ Internal use only - Proprietary
 ---
 
 Built with ❤️ for Pharmaceutical Innovation
+
+## ⚡ Minimal Run (Groq + Tavily only)
+- Set env: `GROQ_API_KEY=...`, `TAVILY_API_KEY=...`, `USE_ASYNC_QUEUE=false`
+- Install deps: `pip install -r requirements.txt`
+- Start API: `uvicorn src.api.main:app --host 0.0.0.0 --port 8000`
+- Start UI: `streamlit run app.py`
+- Submit queries from the UI; execution runs inline (no Redis/Celery/Kafka needed). Enable async later by setting `USE_ASYNC_QUEUE=true` and bringing up the queue infra.

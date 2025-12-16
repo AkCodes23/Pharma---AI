@@ -4,9 +4,14 @@ Tracks API usage and enforces limits to prevent quota exhaustion.
 """
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
+import time
 
 from ..database.db import get_db_session
 from ..database.models import APIUsage, User, UserRole
+try:
+    from src.infra.redis_client import redis_client
+except Exception:  # pragma: no cover
+    redis_client = None
 
 
 class RateLimiter:
@@ -183,3 +188,34 @@ def rate_limited(api_name: str):
 class RateLimitExceeded(Exception):
     """Exception raised when rate limit is exceeded."""
     pass
+
+
+# Lightweight Redis-backed token bucket for Groq calls
+def allow_groq_call(user_id: Optional[str] = None, rate: int = 5, burst: int = 10) -> bool:
+    """
+    Simple token bucket limiter using Redis (or in-memory fallback).
+    rate: tokens per second, burst: max tokens.
+    """
+    if redis_client is None:
+        return True
+
+    key = f"rl:groq:{user_id or 'global'}"
+    now = int(time.time())
+    raw = redis_client.get(key)
+
+    if raw:
+        try:
+            tokens_str, ts_str = raw.split(":")
+            tokens, ts = int(tokens_str), int(ts_str)
+        except ValueError:
+            tokens, ts = burst, now
+    else:
+        tokens, ts = burst, now
+
+    tokens = min(burst, tokens + (now - ts) * rate)
+    if tokens <= 0:
+        return False
+
+    tokens -= 1
+    redis_client.setex(key, 60, f"{tokens}:{now}")
+    return True

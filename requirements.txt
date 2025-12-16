@@ -35,3 +35,8 @@ tavily-python>=0.3.0
 python-dotenv>=1.0.0
 httpx>=0.26.0
 tenacity>=8.2.0
+
+# Async / Infra
+celery>=5.3.6
+redis>=5.0.1
+aiokafka>=0.10.0
